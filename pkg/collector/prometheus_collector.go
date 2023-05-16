@@ -100,7 +100,8 @@ type NodeDesc struct {
 
 	// Additional metrics (gauge)
 	// TODO: review if we really need to expose this metric.
-	NodeCPUFrequency *prometheus.Desc
+	NodeCPUFrequency            *prometheus.Desc
+	nodePackagePowerConsumption *prometheus.Desc
 
 	// Old metric
 	// TODO: remove these metrics in the next release. The dependent components must stop to use this.
@@ -216,6 +217,7 @@ func (p *PrometheusCollector) Describe(ch chan<- *prometheus.Desc) {
 
 	// Additional Node metrics (gauge)
 	ch <- p.nodeDesc.NodeCPUFrequency
+	ch <- p.nodeDesc.nodePackagePowerConsumption
 
 	// Old Node metric
 	ch <- p.nodeDesc.nodePackageMiliJoulesTotal
@@ -327,6 +329,12 @@ func (p *PrometheusCollector) newNodeMetrics() {
 		[]string{"cpu", "instance"}, nil,
 	)
 
+	nodePackagePowerConsumption := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "node", "package_power_consumption_watts"),
+		"Current processor package power consumption in watts",
+		[]string{"pkg_id", "instance"}, nil,
+	)
+
 	// Old metrics
 	nodePackageMiliJoulesTotal := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "node", "package_energy_millijoule"),
@@ -349,6 +357,7 @@ func (p *PrometheusCollector) newNodeMetrics() {
 		nodeOtherComponentsJoulesTotal: nodeOtherComponentsJoulesTotal,
 		nodeGPUJoulesTotal:             nodeGPUJoulesTotal,
 		NodeCPUFrequency:               NodeCPUFrequency,
+		nodePackagePowerConsumption:    nodePackagePowerConsumption,
 		nodePackageMiliJoulesTotal:     nodePackageMiliJoulesTotal, // deprecated
 		NodeMetricsStat:                NodeMetricsStat,
 	}
@@ -540,6 +549,16 @@ func (p *PrometheusCollector) updateNodeMetrics(wg *sync.WaitGroup, ch chan<- pr
 				fmt.Sprintf("%d", cpuID), collector_metric.NodeName,
 			)
 		}
+
+		for pkgID, power := range p.NodeMetrics.SocketPowerConsumption {
+			ch <- prometheus.MustNewConstMetric(
+				p.nodeDesc.nodePackagePowerConsumption,
+				prometheus.GaugeValue,
+				float64(power),
+				fmt.Sprintf("%d", pkgID), collector_metric.NodeName,
+			)
+		}
+
 		for pkgID, val := range p.NodeMetrics.TotalEnergyInPkg.Stat {
 			coreEnergy := strconv.FormatUint(p.NodeMetrics.TotalEnergyInCore.Stat[pkgID].Delta, 10)
 			dramEnergy := strconv.FormatUint(p.NodeMetrics.TotalEnergyInDRAM.Stat[pkgID].Delta, 10)

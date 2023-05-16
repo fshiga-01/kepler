@@ -80,6 +80,8 @@ type NodeMetrics struct {
 
 	CPUFrequency map[int32]uint64
 
+	SocketPowerConsumption map[int32]uint64
+
 	// IdleCPUUtilization is used to determine idle periods
 	IdleCPUUtilization uint64
 	FoundNewIdleState  bool

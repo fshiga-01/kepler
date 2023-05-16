@@ -78,6 +78,10 @@ func (c *Collector) updateNodeGPUEnergy(wg *sync.WaitGroup) {
 // updateNodeAvgCPUFrequency updates the average CPU frequency in each core
 func (c *Collector) updateNodeAvgCPUFrequency(wg *sync.WaitGroup) {
 	defer wg.Done()
+
+	// TEST
+	c.NodeMetrics.SocketPowerConsumption = map[int32]uint64{0: 100}
+
 	// update the cpu frequency using hardware counters when available because reading files can be very expensive
 	if attacher.HardwareCountersEnabled {
 		cpuFreq := map[int32]uint64{}
